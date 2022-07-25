@@ -1,0 +1,84 @@
+###############################################################################################
+
+# Script for multivariable analysis of carotid distensibility and heart rate variability from National Survey of Health and Development data
+
+# Massimiliano Fornasiero (max.fornasiero.18@ucl.ac.uk) conducted the analysis (September 2021 - January 2022)
+
+###############################################################################################
+
+#Loading the data 
+
+"C:/Users/zchafor/OneDrive - University College London/Projects/HRV/a2"
+
+#Packages
+
+require(arules)
+require(boot)
+require(car)
+require(data.table)
+require(Desctools)
+require(ggplot2)
+require(graphics)
+require(Hmisc)
+require(Irr)
+require(Pastecs)
+require(PerformanceAnalytics)
+require(Plyr)
+require(Psych)
+require(QuantPsyc)
+require(Rel)
+require(Reshape)
+require(Reshape2)
+require(scales)
+require(scatterpie)
+require(simecol)
+require(stats)
+require(zoo)
+
+#Defining the parameters used in the analysis as either categorical or continuous with examples shown below. This was done for all variables.
+
+a2$leftcd <- as.numeric(a2$leftcd)
+a2$stroke <- as.factor(a2$stroke)
+
+# determining if a variable is normally distributed using the shapiro-wilk test with example shown below. The same was done for all variables.
+
+shapiro.test(a2$leftcd)
+
+#dividing participants into quartiles of standard deviation of normal to normal beats for heart rate variability.
+
+a2$quart <-cut(a2$hrvtdsdn09, quantile(a2$hrvtdsdn09,(0:4)/4),include.lowest=TRUE, labels=c("Q1","Q2","Q3","Q4"))
+a2$quart <-as.factor(a2$quart)
+Q1 <- subset(a2, a2$quart=="Q1")
+Q2 <- subset(a2, a2$quart=="Q2")
+Q3 <- subset(a2, a2$quart=="Q3")
+Q4 <- subset(a2, a2$quart=="Q4")
+
+#Giving counts of the variables overall and for each quartile using incidence of stroke as an example. This was done for all variables.
+
+table(a2$stroke)
+table(a2$stroke, a2$quart)
+
+#p-value calculation for normally-distributed continuous variables with post-hoc analysis
+
+describeBy(a2$whr09)
+aov.out = aov(a2$whr09 ~ a2$quart, data=a2)
+summary(aov.out)
+post_test <-glht(aov.out)
+summary(post_test)
+
+#summary values and p-value calculation for non-normally distributed continuous variables
+
+summary(a2$imtlmcsd09)
+NemenyiTest(a2$imtlmcsd ~ a2$quart)
+
+#Univariate analysis comparing each HRV parameter to each independent variable
+
+model1 <- glm(a2$hrvtdsdn09~a2$imtlmcsd09, family=Gamma(link="identity"),data=a2)
+summary(model1)
+confint(model1)
+
+#Multivariate analysis checking the association between each heart rate variability parameter (hrvtddsdn09 in this case) and a set of pre-determined covariates
+
+model1 <- glm(a2$hrvtdsdn09 ~ a2$age + a2$averagedistens + a2$sex + a2$sc43 + a2$bmi09  + a2$triglyce09 + a2$hba1c209 + a2$everihd209 + a2$stroke + a2$hypert, family = Gamma(link = "identity"), data =a2)
+summary(model1)
+confint(model1)
